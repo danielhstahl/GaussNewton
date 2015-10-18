@@ -1,0 +1,3 @@
+unix:
+g++ -O3 -std=c++11 -o Newton.o -c Newton.cpp -I../eigen -L../eigen -lEigen  -fopenmp 
+ar rcs libNewton.a Newton.o
