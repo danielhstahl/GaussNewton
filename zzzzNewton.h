@@ -1,17 +1,17 @@
 #ifndef __NEWTON_H_INCLUDED__
 #define __NEWTON_H_INCLUDED__
-#include <vector>
+//#include <vector>
 #include <cmath>
-#include "Eigen/Dense"
+#include <Eigen/Dense>
+//#include <type_traits>
 #include <iostream>
-#include "AutoDiff.h"
 //typedef Matrix<double, Dynamic, Dynamic> MatrixXd;
 class Newton{
 public:
 
   /*This function is UNTESTED! */
   template<typename OBJFUNC> //one dimension
-  void optimize(OBJFUNC&& objective, double &guess){ //guess is modified and used as the "result"
+  void optimize(OBJFUNC&& objective, double &guess){ //slightly inefficient to pass a primitive by reference
     double prec2=1;
     double d1=1;
     double d2=0;
@@ -30,9 +30,8 @@ public:
     }
     //return guess;
   }
-
   template<typename OBJFUNC, typename DERIV> //one dimension
-  void zeros(OBJFUNC&& objective, DERIV&& derivative, double &guess){ //guess is modified and used as the "result"
+  void zeros(OBJFUNC&& objective, DERIV&& derivative, double &guess){ //slightly inefficient to pass a primitive by reference
     double prec2=1;
     double d1=1;
     double d2=0;
@@ -47,25 +46,9 @@ public:
     }
     //return guess;
   }
-
-/*  template<typename OBJFUNC> //one dimension
-  void zeros(OBJFUNC&& objective, double &guess){
-    double prec2=1;
-    double d1=1;
-    double d2=0;
-    double p=0;
-    int j=0;
-    while(abs(d1)>precision1 && abs(prec2)>precision2 && j<maxNum){
-      AutoDiff result=objective(AutoDiff(guess, 1));
-      prec2=guess;
-      guess=guess-result.getStandard()/result.getDual();
-      prec2=guess-prec2;
-      j++;
-    }
-  }*/
   /*This function is UNTESTED! */
   template<typename OBJFUNC>
-  void optimize(OBJFUNC&& objective, std::vector<double> &guess){ //multidimension...
+  void optimize(OBJFUNC&& objective, std::vector<double> &guess){ //multidimension...only compile if OBJFUNC doesnt have an iterator (eg, isn't a vector)
     int n=guess.size();
     Eigen::MatrixXd Hessian(n, n);
     Eigen::VectorXd Gradient(n);
@@ -119,23 +102,21 @@ public:
     Eigen::VectorXd Parameters(n);
     double fnc=0;
     double prec2=1;
-    k=0;
+    int k=0;
     double d1=0;
     double d2=0;
-    std::vector<AutoDiff> augmentedGuess;
-    for(int i=0; i<n; i++){
-        augmentedGuess.push_back(AutoDiff(guess[i], 1));
-    }
     while(prec2>precision2 && k<maxNum){
       for(int j=0; j<m; j++){
-        AutoDiff func;
         for(int i=0; i<n; i++){
-          augmentedGuess[i].setDual(0);
-          func=objective[j](augmentedGuess);
-          augmentedGuess[i].setDual(1);
-          Jacobian(j, i)=func.getDual();
+          guess[i]=guess[i]-dx;
+          d1=objective[j](guess);
+          guess[i]=guess[i]+2*dx;
+          d2=objective[j](guess);
+          Jacobian(j, i)=(d2-d1)/(2*dx);
+          //std::cout<<(d2-d1)/(2*dx)<<std::endl;
+          guess[i]=guess[i]-dx;
         }
-        Function(j)=data[j]-func.getStandard();
+        Function(j)=data[j]-objective[j](guess);
       }
       Parameters=Jacobian.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Function); //not entirely sure what "ComputeThinU" is for...
       //std::cout<<Parameters<<std::endl;
@@ -151,10 +132,10 @@ public:
       //std::cout<<""<<std::endl;
       k++;
     }
-    //std::cout<<"number of iterations: "<<k<<std::endl;
+    std::cout<<"number of iterations: "<<k<<std::endl;
   }
   template<typename OBJFUNC>
-  void optimize(std::vector<OBJFUNC>& objective, std::vector<double> &data, std::vector<double> &guess, std::vector<std::vector<double> > &arguments){ /*least squares: Gauss Newton*/
+  void optimize(std::vector<OBJFUNC>& objective, std::vector<std::vector<double> > &additionalParameters, std::vector<double> &data, std::vector<double> &guess){ /*least squares: Gauss Newton*/
     int n=guess.size(); //number of parameters
     int m=objective.size(); //number of data to optimize over
     Eigen::MatrixXd Jacobian(m, n);
@@ -162,44 +143,41 @@ public:
     Eigen::VectorXd Parameters(n);
     double fnc=0;
     double prec2=1;
-    k=0;
+    int k=0;
     double d1=0;
     double d2=0;
-
-    std::vector<AutoDiff> augmentedGuess;
-    for(int i=0; i<n; i++){
-        augmentedGuess.push_back(AutoDiff(guess[i], 0));
-    }
     while(prec2>precision2 && k<maxNum){
       for(int j=0; j<m; j++){
-        AutoDiff func;
         for(int i=0; i<n; i++){
-          augmentedGuess[i].setDual(1);
-          func=objective[j](augmentedGuess, arguments[j]);
-          augmentedGuess[i].setDual(0);
-          Jacobian(j, i)=func.getDual();
+          guess[i]=guess[i]-dx;
+          d1=objective[j](guess, additionalParameters[j]);
+          guess[i]=guess[i]+2*dx;
+          d2=objective[j](guess, additionalParameters[j]);
+          Jacobian(j, i)=(d2-d1)/(2*dx);
+          //std::cout<<(d2-d1)/(2*dx)<<std::endl;
+          guess[i]=guess[i]-dx;
         }
-        Function(j)=data[j]-func.getStandard();
+        Function(j)=data[j]-objective[j](guess, additionalParameters[j]);
       }
       Parameters=Jacobian.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Function); //not entirely sure what "ComputeThinU" is for...
+      //std::cout<<Parameters<<std::endl;
+      //std::cout<<Jacobian<<std::endl;
+      //std::cout<<Function<<std::endl;
       prec2=0;
       for(int i=0; i<n; i++){
         d1=Parameters(i);
-        augmentedGuess[i].setStandard(augmentedGuess[i].getStandard()+d1);
+        //std::cout<<d1<<", ";
+        guess[i]=guess[i]+d1;
         prec2+=d1*d1;
       }
+      //std::cout<<""<<std::endl;
       k++;
     }
-    for(int i=0; i<n; i++){
-        guess[i]=augmentedGuess[i].getStandard();
-    }
-    //std::cout<<"number of iterations: "<<k<<std::endl;
+    std::cout<<"number of iterations: "<<k<<std::endl;
   }
-  int getIterations();
   Newton();
   Newton(double, double, double);
 private:
-  int k;
   double precision1=.0000001;
   double precision2=.000001;
   double dx=.0001;

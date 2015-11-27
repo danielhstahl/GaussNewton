@@ -7,3 +7,6 @@ Newton::Newton(double prec1, double prec2, double dx_){
   precision2=prec2;
   dx=dx_;
 }
+int Newton::getIterations(){
+    return k;
+}
