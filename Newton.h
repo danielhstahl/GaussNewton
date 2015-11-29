@@ -4,6 +4,7 @@
 #include <cmath>
 #include "Eigen/Dense"
 #include <iostream>
+#include <type_traits>
 #include "AutoDiff.h"
 //typedef Matrix<double, Dynamic, Dynamic> MatrixXd;
 class Newton{
@@ -34,14 +35,32 @@ public:
   template<typename OBJFUNC, typename DERIV> //one dimension
   void zeros(OBJFUNC&& objective, DERIV&& derivative, double &guess){ //guess is modified and used as the "result"
     double prec2=1;
-    double d1=1;
-    double d2=0;
-    double p=0;
     int j=0;
-    while(abs(d1)>precision1 && abs(prec2)>precision2 && j<maxNum){
+    while(abs(prec2)>precision2 && j<maxNum){
 
       prec2=guess;
       guess=guess-objective(guess)/derivative(guess);
+      prec2=guess-prec2;
+      j++;
+    }
+    //return guess;
+  }
+  template<typename OBJFUNC, typename gs> //one dimension
+  void zeros(OBJFUNC&& objective, gs &guesses){ //guess is modified and used as the "result"
+    AutoDiff prec2(1, 0);
+    AutoDiff guess;
+    if(std::is_fundamental<gs>::value){
+      guess.setStandard(guesses);
+      guess.setDual(1);
+    }
+    else{
+      guess.setStandard(guesses.getStandard());
+      guess.setDual(1);
+    }
+    int j=0;
+    while(abs(prec2.getStandard())>precision2 && j<maxNum){
+      prec2=guess;
+      guess=guess-objective(guess).getStandard()/objective(guess).getDual();
       prec2=guess-prec2;
       j++;
     }
