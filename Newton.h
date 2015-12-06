@@ -18,7 +18,7 @@ public:
     double d2=0;
     double p=0;
     int j=0;
-    while(abs(d1)>precision1 && abs(prec2)>precision2 && j<maxNum){
+    while(std::abs(d1)>precision1 && std::abs(prec2)>precision2 && j<maxNum){
       d1=objective(guess+dx);
       d2=objective(guess);
       p=objective(guess-dx);
@@ -36,8 +36,7 @@ public:
   void zeros(OBJFUNC&& objective, DERIV&& derivative, double &guess){ //guess is modified and used as the "result"
     double prec2=1;
     int j=0;
-    while(abs(prec2)>precision2 && j<maxNum){
-
+    while(std::abs(prec2)>precision2 && j<maxNum){
       prec2=guess;
       guess=guess-objective(guess)/derivative(guess);
       prec2=guess-prec2;
@@ -45,25 +44,25 @@ public:
     }
     //return guess;
   }
-  template<typename OBJFUNC, typename gs> //one dimension
-  void zeros(OBJFUNC&& objective, gs &guesses){ //guess is modified and used as the "result"
-    AutoDiff prec2(1, 0);
-    AutoDiff guess;
-    if(std::is_fundamental<gs>::value){
+  template<typename OBJFUNC> //one dimension
+  void zeros(OBJFUNC&& objective, double &guesses){ //guess is modified and used as the "result"
+    //AutoDiff prec2(1, 0);
+    double prec2=1;
+    AutoDiff guess(guesses, 1);
+    //guess.setStandard(guesses);
+    //guess.setDual(1);
+    int j=0;
+    while(std::abs(prec2)>precision2 && j<maxNum){
+      prec2=guesses;
+      AutoDiff p=objective(guess);
+      guesses=guesses-p.getStandard()/p.getDual();
+      prec2=(guesses-prec2)/guesses;
       guess.setStandard(guesses);
       guess.setDual(1);
-    }
-    else{
-      guess.setStandard(guesses.getStandard());
-      guess.setDual(1);
-    }
-    int j=0;
-    while(abs(prec2.getStandard())>precision2 && j<maxNum){
-      prec2=guess;
-      guess=guess-objective(guess).getStandard()/objective(guess).getDual();
-      prec2=guess-prec2;
       j++;
     }
+  //  double test=abs(prec2);
+    //std::cout<<"preciscion2: "<<precision2<<", prec2: "<<prec2<<", j: "<<j<<" maxnum: "<<maxNum<<" abs(prec2) "<<test<<std::endl;
     //return guess;
   }
 
