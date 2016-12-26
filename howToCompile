@@ -1,3 +1,0 @@
-unix:
-g++ -O3 -std=c++11 -o Newton.o -c Newton.cpp -I../eigen -L../eigen -lEigen -I../AutoDiff -L../AutoDiff -lAutoDiff -fopenmp 
-ar rcs libNewton.a Newton.o
