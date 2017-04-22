@@ -6,11 +6,14 @@
 #include "AutoDiff.h"
 #include "FunctionalUtilities.h"
 namespace newton{
-
+  template<typename Val, typename Obj, typename Deriv>
+  auto iterateStep(Val&& val, Obj&& obj, Deriv&& deriv){
+    return val-obj/deriv;
+  }
   template<typename OBJFUNC, typename DERIV, typename Guess, typename Index> //one dimension
   auto zeros(OBJFUNC&& objective, DERIV&& derivative, const Guess& guess, const Guess& precision2, const Index& maxNum){ 
     return futilities::recurse(maxNum, guess, [&](const auto& val, const auto& index){
-      return val-objective(val)/derivative(val);
+      return iterateStep(val, objective(val), derivative(val));
     }, [&](const auto& val, const auto& evalAtArg){
       return std::abs(evalAtArg)>precision2;//keep going criteria
     });
@@ -19,7 +22,7 @@ namespace newton{
   auto zeros(OBJFUNC&& objective, const Guess& guess, const Guess& precision2, const Index& maxNum){ 
     AutoDiff<Guess> aGuess=AutoDiff<Guess>(guess, 1.0);
     auto getNewtonCoef=[](const auto& val, auto&& objResult){
-      objResult.setStandard(val.getStandard()-objResult.getStandard()/objResult.getDual());
+      objResult.setStandard(iterateStep(val.getStandard(), objResult.getStandard(), objResult.getDual()));
       objResult.setDual(1.0);
       return std::move(objResult);
     };
