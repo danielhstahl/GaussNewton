@@ -1,4 +1,4 @@
-INCLUDES=-I ../FunctionalUtilities -I ../AutoDiff
+INCLUDES=-I ../FunctionalUtilities -I ../AutoDiff -I ../TupleUtilities
 test:test.o
 	g++ -std=c++14 -O3 -pthread --coverage test.o $(INCLUDES) -o test -fopenmp
 test.o:test.cpp Newton.h
