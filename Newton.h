@@ -87,7 +87,7 @@ namespace newton{
 
 
   template<typename FNC, typename T>
-  auto gradientAgain(FNC&& fnc, const T& tuple){
+  auto gradientIterate(FNC&& fnc, const T& tuple){
     return tutilities::for_each(tuple, [&](const auto& val, const auto& index, auto&& priorTuple, auto&& nextTuple){
       return std::make_tuple(
         fnc(
@@ -123,7 +123,7 @@ namespace newton{
 
   template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
   auto gradientDescent(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
-    auto tupleFnc=[&](const auto& tuple){
+    auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
       return tutilities::expand_tuple(fnc, tuple);
     };
     return futilities::recurse_move(
@@ -131,13 +131,13 @@ namespace newton{
       std::make_tuple(params...), ///inital guess
       [&](const auto& updatedTheta, const auto& numberOfAttempts){
         return tutilities::for_each(
-          gradientAgain(tupleFnc, updatedTheta), 
+          gradientIterate(tupleFnc, updatedTheta), //gradient at updatedTheta
           [&](const auto& grad, const auto& index, auto&& priorTuple, auto&& nextTuple){
             return gradientDescentObjective(std::get<1>(grad), alpha, std::get<0>(grad));
           }
         );
       }, 
-      [&](const auto& evalAtArg){
+      [&](const auto& updatedTheta){
         return true;//std::abs(evalAtArg)>precision;//keep going criteria
       }
     );

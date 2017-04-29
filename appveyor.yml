@@ -22,6 +22,7 @@ install:
   - cmd: cd C:\projects
   - cmd: git clone https://github.com/phillyfan1138/FunctionalUtilities
   - cmd: git clone https://github.com/phillyfan1138/AutoDiff
+  - cmd: git clone https://github.com/phillyfan1138/TupleUtilities
   - cmd: cd gn
   - cmd: make
 
