@@ -129,7 +129,7 @@ namespace newton{
   template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
   auto gradientDescent(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
     auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
-      return tutilities::expand_tuple(fnc, tuple);
+      return tutilities::apply_tuple(fnc, tuple);
     };
     double tol=5;//this is bad practice! not "functional"!
     return futilities::recurse_move(
