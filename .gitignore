@@ -4,3 +4,5 @@
 test
 *.gcda
 *.gcno
+*.exe
+*.obj
