@@ -150,7 +150,29 @@ namespace newton{
       }
     );
   }
+  template<typename T, typename S>
+  auto isSameSign(const T& x1, const S& x2){
+    return x1*x2>0;
+  }
+  template<typename T, typename S>
+  auto isEndBiggerThanBeginning(const T& x1, const S& x2){
+    return x2>x1;
+  }
 
+  template< typename OBJFUNC> //one dimension
+  auto bisect(OBJFUNC&& objective, double begin, double end, double precision1, double precision2){
+      double beginResult=objective(begin);
+      double endResult=objective(end);
+      double prec=2;
+      auto maxNum=10000;//will get there befre 10000
+      return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse(maxNum, std::vector<double>({begin, end, endResult}), [&](const auto& value, const auto& index){
+        auto c=(value[0]+value[1])*.5;
+        auto result=objective(c);
+        return isSameSign(result, beginResult)?std::vector<double>({c, value[1], result}):std::vector<double>({c, value[0],result});
+      }, [&](const auto& init, const auto& current){
+        return current[2]>precision1&&abs(current[1]-current[0])*.5>precision2;
+      })[0];
+  }
 }
 
 #endif
