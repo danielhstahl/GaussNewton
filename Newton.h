@@ -160,18 +160,22 @@ namespace newton{
     return x2>x1;
   }
 
+  constexpr int arraySize=3;
+  constexpr int beginIndex=0;
+  constexpr int endIndex=1;
+  constexpr int priorResultIndex=2;
   template< typename OBJFUNC> //one dimension
   auto bisect(OBJFUNC&& objective, double begin, double end, double precision1, double precision2){
       double beginResult=objective(begin);
       double endResult=objective(end);
       double prec=2;
       auto maxNum=10000;//will get there befre 10000
-      return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse_move(maxNum, std::array<double, 3>({begin, end, endResult}), [&](const auto& value, const auto& index){
-        auto c=(value[0]+value[1])*.5;
+      return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse_move(maxNum, std::array<double, arraySize>({begin, end, beginResult}), [&](const auto& value, const auto& index){
+        auto c=(value[beginIndex]+value[endIndex])*.5;
         auto result=objective(c);
-        return isSameSign(result, beginResult)?std::array<double, 3>({c, value[1], result}):std::array<double, 3>({c, value[0], result});
+        return isSameSign(result, beginResult)?std::array<double, arraySize>({c, value[endIndex], result}):std::array<double, arraySize>({c, value[beginIndex], result});
       }, [&](const auto& current){
-        return current[2]>precision1&&abs(current[1]-current[0])*.5>precision2;
+        return fabs(current[priorResultIndex])>precision1&&fabs(current[endIndex]-current[beginIndex])*.5>precision2;
       })[0];
   }
 }
