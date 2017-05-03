@@ -173,7 +173,7 @@ namespace newton{
       return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse_move(maxNum, std::array<double, arraySize>({begin, end, beginResult}), [&](const auto& value, const auto& index){
         auto c=(value[beginIndex]+value[endIndex])*.5;
         auto result=objective(c);
-        return isSameSign(result, beginResult)?std::array<double, arraySize>({c, value[endIndex], result}):std::array<double, arraySize>({c, value[beginIndex], result});
+        return isSameSign(result, value[priorResultIndex])?std::array<double, arraySize>({c, value[endIndex], result}):std::array<double, arraySize>({c, value[beginIndex], result});
       }, [&](const auto& current){
         return fabs(current[priorResultIndex])>precision1&&fabs(current[endIndex]-current[beginIndex])*.5>precision2;
       })[0];
