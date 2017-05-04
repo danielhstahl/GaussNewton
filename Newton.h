@@ -132,24 +132,23 @@ namespace newton{
     auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
       return tutilities::apply_tuple(fnc, tuple);
     };
-    double tol=5;//this is bad practice! not "functional"!
-    return futilities::recurse_move(
+    return std::get<0>(futilities::recurse_move(
       maxNum, 
-      std::make_tuple(params...), ///inital guess
+      std::make_tuple(std::make_tuple(params...), precision+1.0), ///inital guess and initial "error"
       [&](const auto& updatedTheta, const auto& numberOfAttempts){
-        tol=0;
-        return tutilities::for_each(
-          gradientIterate(tupleFnc, updatedTheta), //gradient at updatedTheta
+        double error=0;
+        return std::make_tuple(tutilities::for_each(
+          gradientIterate(tupleFnc, std::get<0>(updatedTheta)), //gradient at updatedTheta
           [&](const auto& grad, const auto& index, auto&& priorTuple, auto&& nextTuple){
-            tol+=square(std::get<0>(grad));
+            error+=square(std::get<0>(grad));
             return gradientDescentObjective(std::get<1>(grad), alpha, std::get<0>(grad));
           }
-        );
+        ), error);
       }, 
       [&](const auto& updatedTheta){
-        return tol>precision;
+        return std::get<1>(updatedTheta)>precision;
       }
-    );
+    ));
   }
   template<typename T, typename S>
   auto isSameSign(const T& x1, const S& x2){
