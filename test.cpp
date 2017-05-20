@@ -90,3 +90,11 @@ TEST_CASE("Test gradient descent two args", "[GaussNewton]"){
 
     REQUIRE(newton::gradientDescent(myTestFunc,  50, .00001, .5, testX, testY)==answer);
 }
+
+TEST_CASE("Test bisect", "[GaussNewton]"){
+    auto myTestFunc=[](const auto& x){
+        return x*x-4.0;
+    };
+
+    REQUIRE(newton::bisect(myTestFunc, 0, 5, .0001, .00001)==Approx(2.0));
+}

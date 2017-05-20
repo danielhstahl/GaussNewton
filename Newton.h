@@ -2,6 +2,7 @@
 #define __NEWTON_H_INCLUDED__
 
 #include <vector>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <complex>
@@ -131,26 +132,51 @@ namespace newton{
     auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
       return tutilities::apply_tuple(fnc, tuple);
     };
-    double tol=5;//this is bad practice! not "functional"!
-    return futilities::recurse_move(
+    return std::get<0>(futilities::recurse_move(
       maxNum, 
-      std::make_tuple(params...), ///inital guess
+      std::make_tuple(std::make_tuple(params...), precision+1.0), ///inital guess and initial "error"
       [&](const auto& updatedTheta, const auto& numberOfAttempts){
-        tol=0;
-        return tutilities::for_each(
-          gradientIterate(tupleFnc, updatedTheta), //gradient at updatedTheta
+        double error=0;
+        return std::make_tuple(tutilities::for_each(
+          gradientIterate(tupleFnc, std::get<0>(updatedTheta)), //gradient at updatedTheta
           [&](const auto& grad, const auto& index, auto&& priorTuple, auto&& nextTuple){
-            tol+=square(std::get<0>(grad));
+            error+=square(std::get<0>(grad));
             return gradientDescentObjective(std::get<1>(grad), alpha, std::get<0>(grad));
           }
-        );
+        ), error);
       }, 
       [&](const auto& updatedTheta){
-        return tol>precision;
+        return std::get<1>(updatedTheta)>precision;
       }
-    );
+    ));
+  }
+  template<typename T, typename S>
+  auto isSameSign(const T& x1, const S& x2){
+    return x1*x2>0;
+  }
+  template<typename T, typename S>
+  auto isEndBiggerThanBeginning(const T& x1, const S& x2){
+    return x2>x1;
   }
 
+  constexpr int arraySize=3;
+  constexpr int beginIndex=0;
+  constexpr int endIndex=1;
+  constexpr int priorResultIndex=2;
+  template< typename OBJFUNC> //one dimension
+  auto bisect(OBJFUNC&& objective, double begin, double end, double precision1, double precision2){
+      double beginResult=objective(begin);
+      double endResult=objective(end);
+      double prec=2;
+      auto maxNum=10000;//will get there befre 10000
+      return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse_move(maxNum, std::array<double, arraySize>({begin, end, beginResult}), [&](const auto& value, const auto& index){
+        auto c=(value[beginIndex]+value[endIndex])*.5;
+        auto result=objective(c);
+        return isSameSign(result, value[priorResultIndex])?std::array<double, arraySize>({c, value[endIndex], result}):std::array<double, arraySize>({c, value[beginIndex], result});
+      }, [&](const auto& current){
+        return fabs(current[priorResultIndex])>precision1&&fabs(current[endIndex]-current[beginIndex])*.5>precision2;
+      })[0];
+  }
 }
 
 #endif
