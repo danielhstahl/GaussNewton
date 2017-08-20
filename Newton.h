@@ -18,39 +18,87 @@ namespace newton{
   auto iterateStep(Val&& val, Obj&& obj, Deriv&& deriv){
     return val-obj/deriv;
   }
+
+
+  constexpr int totalOptimizationSize=3;
+  template<typename T>
+  using OptimizationObject = std::array<T, totalOptimizationSize>;
+  constexpr int functionOutputIndex=0;
+  constexpr int previousInputIndex=1;
+  constexpr int currentInputIndex=2;
+
+  template<typename OptObj, typename T>
+  auto setOptimizationObject(OptObj&& optObj, const T& functionOutput, const T& previousInput, const T& currentInput){
+    optObj[functionOutputIndex]=functionOutput;
+    optObj[previousInputIndex]=previousInput;
+    optObj[currentInputIndex]=currentInput;
+    return std::move(optObj);
+  }
+
+  template<typename T>
+  auto createOptimizationObject(const T& functionOutput, const T& previousInput, const T& currentInput){
+    OptimizationObject<T> optObj;
+    optObj[functionOutputIndex]=functionOutput;
+    optObj[previousInputIndex]=previousInput;
+    optObj[currentInputIndex]=currentInput;
+    return optObj;
+  }
+
+
+  template<typename OptObj, typename T>
+  auto checkPrecision(const OptObj& optObj, const T& precision1, const T& precision2){
+    
+    return fabs(optObj[functionOutputIndex])>precision1&&fabs(optObj[currentInputIndex]-optObj[previousInputIndex])*.5>precision2;
+  }
+
+  template<typename OptObj>
+  auto getCurrent(const OptObj& optObj){
+    return optObj[currentInputIndex];
+  }
+  template<typename OptObj>
+  auto getPrevious(const OptObj& optObj){
+    return optObj[previousInputIndex];
+  }
+  template<typename OptObj>
+  auto getOutput(const OptObj& optObj){
+    return optObj[functionOutputIndex];
+  }
+
+
+
+
   template<typename OBJFUNC, typename DERIV, typename Guess, typename Index> //one dimension
-  auto zeros(OBJFUNC&& objective, DERIV&& derivative, const Guess& guess, const Guess& precision2, const Index& maxNum){ 
-    return futilities::recurse(maxNum, guess, [&](const auto& val, const auto& index){
+  auto zeros(OBJFUNC&& objective, DERIV&& derivative, const Guess& guess, const Guess& precision1, const Guess& precision2, const Index& maxNum){ //({2.0, guess+1.0, guess})
+    return getCurrent(futilities::recurse_move(maxNum, createOptimizationObject(2.0, guess+1.0, guess), [&](auto&& value, const auto& index){
+      const auto guess=getCurrent(value);
+      const auto result=objective(guess);
       #ifdef VERBOSE_FLAG
-        std::cout<<"Iteration: "<<index<<", ";
+        std::cout<<"Iteration: "<<index<<", Function Value: "<<result<<", Input: "<<guess<<std::endl;
       #endif
-      return iterateStep(val, objective(val), derivative(val));
-    }, [&](const auto& val, const auto& evalAtArg){
-      #ifdef VERBOSE_FLAG
-        std::cout<<"Function Value: "<<evalAtArg<<std::endl;
-      #endif
-      return std::abs(evalAtArg)>precision2;//keep going criteria
-    });
+      return setOptimizationObject(std::move(value), result, guess, iterateStep(guess, result, derivative(guess)));
+    }, [&](const auto& value){
+      return checkPrecision(value, precision1, precision2);
+    }));
   }
   template<typename OBJFUNC, typename Guess, typename Index> //one dimension
-  auto zeros(OBJFUNC&& objective, const Guess& guess, const Guess& precision2, const Index& maxNum){ 
+  auto zeros(OBJFUNC&& objective, const Guess& guess, const Guess& precision1, const Guess& precision2, const Index& maxNum){ 
     AutoDiff<Guess> aGuess=AutoDiff<Guess>(guess, 1.0);
     auto getNewtonCoef=[](const auto& val, auto&& objResult){ 
       objResult.setStandard(iterateStep(val.getStandard(), objResult.getStandard(), objResult.getDual()));
       objResult.setDual(1.0);
       return std::move(objResult);
     };
-    return futilities::recurse(maxNum, aGuess, [&](const auto& val, const auto& index){
+    
+    return getCurrent(futilities::recurse_move(maxNum, createOptimizationObject(AutoDiff<Guess>(2.0, 0.0), aGuess+1.0, aGuess), [&](auto&& value, const auto& index){
+      const auto guess=getCurrent(value);
+      auto result=objective(guess);
       #ifdef VERBOSE_FLAG
-        std::cout<<"Iteration: "<<index<<", ";
+      std::cout<<"Iteration: "<<index<<", Function Value: "<<result.getStandard()<<", Input: "<<guess.getStandard()<<std::endl;
       #endif
-      return getNewtonCoef(val, objective(val));
-    }, [&](const auto& arg, const auto& evalAtArg){
-      #ifdef VERBOSE_FLAG
-        std::cout<<"Function Value: "<<evalAtArg.getStandard()<<std::endl;
-      #endif
-      return std::abs(evalAtArg.getStandard())>precision2;//keep going criteria
-    }).getStandard();
+      return setOptimizationObject(value, result, guess, getNewtonCoef(guess, result));  
+    }, [&](const auto& value){
+      return checkPrecision(value, precision1, precision2);
+    })).getStandard();
   }
 
 
@@ -174,26 +222,30 @@ namespace newton{
     return x2>x1;
   }
 
-  constexpr int arraySize=3;
-  constexpr int beginIndex=0;
-  constexpr int endIndex=1;
-  constexpr int priorResultIndex=2;
+
+
+
   template< typename OBJFUNC> //one dimension
   auto bisect(OBJFUNC&& objective, double begin, double end, double precision1, double precision2){
       double beginResult=objective(begin);
       double endResult=objective(end);
       double prec=2;
       auto maxNum=10000;//will get there befre 10000
-      return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse_move(maxNum, std::array<double, arraySize>({begin, end, beginResult}), [&](const auto& value, const auto& index){
-        auto c=(value[beginIndex]+value[endIndex])*.5;
+      return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:getCurrent(futilities::recurse_move(maxNum, createOptimizationObject(beginResult, begin, end), [&](auto&& value, const auto& index){
+        auto c=(getPrevious(value)+getCurrent(value))*.5;
         auto result=objective(c);
         #ifdef VERBOSE_FLAG
           std::cout<<"Iteration: "<<index<<", Function Value: "<<result<<std::endl;
         #endif
-        return isSameSign(result, value[priorResultIndex])?std::array<double, arraySize>({c, value[endIndex], result}):std::array<double, arraySize>({c, value[beginIndex], result});
-      }, [&](const auto& current){
-        return fabs(current[priorResultIndex])>precision1&&fabs(current[endIndex]-current[beginIndex])*.5>precision2;
-      })[0];
+        if(isSameSign(result, getOutput(value))){
+          return setOptimizationObject(value, result, c, getCurrent(value));
+        }
+        else{
+          return setOptimizationObject(value, result, c, getPrevious(value));
+        }
+      }, [&](const auto& value){
+        return checkPrecision(value, precision1, precision2);
+      }));
   }
 }
 

@@ -12,7 +12,7 @@ TEST_CASE("Test Straight Deriv", "[GaussNewton]"){
         return 2*val;
     };
     auto guess=2.0;
-    REQUIRE(newton::zeros(squareTestV, deriv, guess, .00001, 20)==Approx(sqrt(2.0)));
+    REQUIRE(newton::zeros(squareTestV, deriv, guess, .00001, .00001, 20)==Approx(sqrt(2.0)));
 }  
   
 TEST_CASE("Test autodiff Deriv", "[GaussNewton]"){
@@ -20,7 +20,7 @@ TEST_CASE("Test autodiff Deriv", "[GaussNewton]"){
         return val*val-2.0;
     }; 
     auto guess=2.0;
-    REQUIRE(newton::zeros(squareTestV,  guess, .00001, 20)==Approx(sqrt(2.0)));
+    REQUIRE(newton::zeros(squareTestV,  guess, .00001, .00001, 20)==Approx(sqrt(2.0)));
 }
 
 TEST_CASE("Test gradient two args", "[GaussNewton]"){
