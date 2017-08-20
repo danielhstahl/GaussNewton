@@ -11,3 +11,5 @@
 
 
 This is a basic implementation of the Gauss-Newton minimization for L2 norms.  This library requires my [Functional Utilities](https://github.com/phillyfan1138/FunctionalUtilities) and [AutoDiff](https://github.com/phillyfan1138/AutoDiff) libraries.
+
+For verbose output, compile with flag `-D VERBOSE_FLAG=1`

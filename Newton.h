@@ -21,22 +21,34 @@ namespace newton{
   template<typename OBJFUNC, typename DERIV, typename Guess, typename Index> //one dimension
   auto zeros(OBJFUNC&& objective, DERIV&& derivative, const Guess& guess, const Guess& precision2, const Index& maxNum){ 
     return futilities::recurse(maxNum, guess, [&](const auto& val, const auto& index){
+      #ifdef VERBOSE_FLAG
+        std::cout<<"Iteration: "<<index<<", ";
+      #endif
       return iterateStep(val, objective(val), derivative(val));
     }, [&](const auto& val, const auto& evalAtArg){
+      #ifdef VERBOSE_FLAG
+        std::cout<<"Function Value: "<<evalAtArg<<std::endl;
+      #endif
       return std::abs(evalAtArg)>precision2;//keep going criteria
     });
   }
   template<typename OBJFUNC, typename Guess, typename Index> //one dimension
   auto zeros(OBJFUNC&& objective, const Guess& guess, const Guess& precision2, const Index& maxNum){ 
     AutoDiff<Guess> aGuess=AutoDiff<Guess>(guess, 1.0);
-    auto getNewtonCoef=[](const auto& val, auto&& objResult){
+    auto getNewtonCoef=[](const auto& val, auto&& objResult){ 
       objResult.setStandard(iterateStep(val.getStandard(), objResult.getStandard(), objResult.getDual()));
       objResult.setDual(1.0);
       return std::move(objResult);
     };
     return futilities::recurse(maxNum, aGuess, [&](const auto& val, const auto& index){
+      #ifdef VERBOSE_FLAG
+        std::cout<<"Iteration: "<<index<<", ";
+      #endif
       return getNewtonCoef(val, objective(val));
     }, [&](const auto& arg, const auto& evalAtArg){
+      #ifdef VERBOSE_FLAG
+        std::cout<<"Function Value: "<<evalAtArg.getStandard()<<std::endl;
+      #endif
       return std::abs(evalAtArg.getStandard())>precision2;//keep going criteria
     }).getStandard();
   }
@@ -81,10 +93,13 @@ namespace newton{
         return fnc(current, remaining...);
       }, std::tuple_cat(myResult, std::make_tuple(fnc(AutoDiff<T>(current, 1.0), myparms...).getDual())), myparms...);
   }
+  /**NOTE that the gradientTuple is not used, but is kept here because I find the implementation interesting*/
   template<typename FNC,  typename...Ts>
   auto gradientTuple(FNC&& fnc, const Ts&... myparms){
     return gradientHelperTuple(fnc, std::make_tuple(), myparms...);
   }
+
+
 
 
   template<typename FNC, typename T>
@@ -172,6 +187,9 @@ namespace newton{
       return isSameSign(beginResult, endResult)&&isEndBiggerThanBeginning(begin, end)?begin:futilities::recurse_move(maxNum, std::array<double, arraySize>({begin, end, beginResult}), [&](const auto& value, const auto& index){
         auto c=(value[beginIndex]+value[endIndex])*.5;
         auto result=objective(c);
+        #ifdef VERBOSE_FLAG
+          std::cout<<"Iteration: "<<index<<", Function Value: "<<result<<std::endl;
+        #endif
         return isSameSign(result, value[priorResultIndex])?std::array<double, arraySize>({c, value[endIndex], result}):std::array<double, arraySize>({c, value[beginIndex], result});
       }, [&](const auto& current){
         return fabs(current[priorResultIndex])>precision1&&fabs(current[endIndex]-current[beginIndex])*.5>precision2;
