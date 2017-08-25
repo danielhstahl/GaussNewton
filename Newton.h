@@ -86,7 +86,7 @@ namespace newton{
       #ifdef VERBOSE_FLAG
         printIteration(index);
       #endif
-      return setOptimizationObject(std::move(value), result, guess, iterateStep(guess, result, derivative(guess)));
+      return setOptimizationObject(value, result, guess, iterateStep(guess, result, derivative(guess)));
     }, [&](const auto& value){
       #ifdef VERBOSE_FLAG
         printResults(value);
@@ -98,9 +98,7 @@ namespace newton{
   auto zeros(OBJFUNC&& objective, const Guess& guess, const Guess& precision1, const Guess& precision2, const Index& maxNum){ 
     AutoDiff<Guess> aGuess=AutoDiff<Guess>(guess, 1.0);
     auto getNewtonCoef=[](const auto& val, auto&& objResult){ 
-      objResult.setStandard(iterateStep(val.getStandard(), objResult.getStandard(), objResult.getDual()));
-      objResult.setDual(1.0);
-      return std::move(objResult);
+      return AutoDiff<Guess>(iterateStep(val.getStandard(), objResult.getStandard(), objResult.getDual()), 1.0);
     };
     
     return getCurrent(futilities::recurse_move(maxNum, createOptimizationObject(AutoDiff<Guess>(2.0, 0.0), aGuess+1.0, aGuess), [&](auto&& value, const auto& index){
