@@ -45,10 +45,21 @@ namespace newton{
   }
 
 
+
+
   template<typename OptObj, typename T>
   auto checkPrecision(const OptObj& optObj, const T& precision1, const T& precision2){
     
     return fabs(optObj[functionOutputIndex])>precision1&&fabs(optObj[currentInputIndex]-optObj[previousInputIndex])*.5>precision2;
+  }
+
+  template<typename OptObj>
+  auto printResults(const OptObj& optObj){
+    std::cout<<"Function evaluation: "<<optObj[functionOutputIndex]<<", Previous input: "<<optObj[previousInputIndex]<<", Current Input: "<<optObj[currentInputIndex]<<std::endl;
+  }
+  template<typename Index>
+  auto printIteration(const Index& index){
+    std::cout<<"Iteration: "<<index<<", ";
   }
 
   template<typename OptObj>
@@ -73,10 +84,13 @@ namespace newton{
       const auto guess=getCurrent(value);
       const auto result=objective(guess);
       #ifdef VERBOSE_FLAG
-        std::cout<<"Iteration: "<<index<<", Function Value: "<<result<<", Input: "<<guess<<std::endl;
+        printIteration(index);
       #endif
       return setOptimizationObject(std::move(value), result, guess, iterateStep(guess, result, derivative(guess)));
     }, [&](const auto& value){
+      #ifdef VERBOSE_FLAG
+        printResults(value);
+      #endif
       return checkPrecision(value, precision1, precision2);
     }));
   }
@@ -93,10 +107,13 @@ namespace newton{
       const auto guess=getCurrent(value);
       auto result=objective(guess);
       #ifdef VERBOSE_FLAG
-      std::cout<<"Iteration: "<<index<<", Function Value: "<<result.getStandard()<<", Input: "<<guess.getStandard()<<std::endl;
+        printIteration(index);
       #endif
       return setOptimizationObject(value, result, guess, getNewtonCoef(guess, result));  
     }, [&](const auto& value){
+      #ifdef VERBOSE_FLAG
+        printResults(value);
+      #endif
       return checkPrecision(value, precision1, precision2);
     })).getStandard();
   }
@@ -235,7 +252,7 @@ namespace newton{
         auto c=(getPrevious(value)+getCurrent(value))*.5;
         auto result=objective(c);
         #ifdef VERBOSE_FLAG
-          std::cout<<"Iteration: "<<index<<", Function Value: "<<result<<std::endl;
+          printIteration(index);
         #endif
         if(isSameSign(result, getOutput(value))){
           return setOptimizationObject(value, result, c, getCurrent(value));
@@ -244,6 +261,9 @@ namespace newton{
           return setOptimizationObject(value, result, c, getPrevious(value));
         }
       }, [&](const auto& value){
+        #ifdef VERBOSE_FLAG
+          printResults(value);
+        #endif
         return checkPrecision(value, precision1, precision2);
       }));
   }
