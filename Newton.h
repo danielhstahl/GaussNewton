@@ -182,6 +182,30 @@ namespace newton{
   }
 
 
+  /**returns tuple of tuples*/
+  template<typename FNC, typename T>
+  auto gradientIterateApprox(FNC&& fnc, const T& tuple, double perterb){
+    return tutilities::for_each(tuple, [&](const auto& val, const auto& index, auto&& priorTuple, auto&& nextTuple){
+      return std::make_tuple(
+        (fnc(
+          std::tuple_cat(
+            priorTuple, 
+            std::make_tuple(val+perterb), //perterb   
+            nextTuple
+          )
+        )-fnc(
+          std::tuple_cat(
+            priorTuple, 
+            std::make_tuple(val-perterb), //perterb   
+            nextTuple
+          )
+        ))/(2.0*perterb), 
+        val
+      );
+    });
+  }
+
+
 
   /**base case*/
   template<typename T>
@@ -199,10 +223,12 @@ namespace newton{
     return theta-alpha*grad;
   }
 
+
+
   constexpr int GRAD=0;
   constexpr int OBJ=1;
-  template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
-  auto gradientDescent(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
+  template<typename FNC, typename GFN, typename Index, typename Precision,typename T, typename...Params>
+  auto gradientDescentGeneric(const GFN& gradientIter, const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha,  const Params&... params){
     auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
       return tutilities::apply_tuple(fnc, tuple);
     };
@@ -212,7 +238,7 @@ namespace newton{
       [&](const auto& updatedTheta, const auto& numberOfAttempts){
         double error=0;
         return std::make_tuple(tutilities::for_each(
-          gradientIterate(tupleFnc, std::get<GRAD>(updatedTheta)), //gradient at updatedTheta
+          gradientIter(tupleFnc, std::get<GRAD>(updatedTheta)), //gradient at updatedTheta
           [&](const auto& gradAndObj, const auto& index, auto&& priorTuple, auto&& nextTuple){
             error+=futilities::const_power(std::get<GRAD>(gradAndObj), 2);
             return gradientDescentObjective(std::get<OBJ>(gradAndObj), alpha, std::get<GRAD>(gradAndObj));
@@ -224,6 +250,36 @@ namespace newton{
       }
     ));
   }
+  template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
+  auto gradientDescent(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
+    return gradientDescentGeneric(
+      [](const auto& tupleFnc, const auto& updatedGradient){
+        return gradientIterate(tupleFnc, updatedGradient);
+      },
+      fnc,
+      maxNum,
+      precision,
+      alpha, 
+      params...
+    );
+  }
+  
+  template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
+  auto gradientDescentApprox(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
+    return gradientDescentGeneric(
+      [](const auto& tupleFnc, const auto& updatedGradient){
+        double peterb=.0001;
+        return gradientIterateApprox(tupleFnc, updatedGradient, peterb);  
+      },fnc,
+      maxNum,
+      precision,
+      alpha, 
+      params...
+    );
+  }
+
+
+
   template<typename T, typename S>
   auto isSameSign(const T& x1, const S& x2){
     return x1*x2>0;

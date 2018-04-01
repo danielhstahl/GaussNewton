@@ -90,6 +90,32 @@ TEST_CASE("Test gradient descent two args", "[GaussNewton]"){
     REQUIRE(newton::gradientDescent(myTestFunc, 50, .00001, .5, testX, testY)==answer);
 }
 
+TEST_CASE("Test gradient descent two args and appox", "[GaussNewton]"){
+    auto myTestFunc=[](const auto& x, const auto& y){
+        return (x-5.0)*(x-5.0)+(y-5.0)*(y-5.0); //minimum is at 5, 5
+    };
+    double testX=2;
+    double testY=2;
+    
+    //auto myResult=newton::gradientDescent(myTestFunc,  50, .00001, .5, testX);
+    auto answer=std::make_tuple(5.0, 5.0);
+
+    REQUIRE(newton::gradientDescentApprox(myTestFunc, 50, .00001, .5, testX, testY)==answer);
+}
+/*
+TEST_CASE("Test gradient descent two args and complex", "[GaussNewton]"){
+    auto myTestFunc=[](const auto& x, const auto& y){
+        return std::norm(x*std::complex<double>(1.0, 0.0)+y*std::complex<double>(0.0, 1.0));
+    };
+    auto testX=std::complex<double>(2, 0);
+    auto testY=std::complex<double>(2, 0);
+    
+    //auto myResult=newton::gradientDescent(myTestFunc,  50, .00001, .5, testX);
+    auto answer=std::make_tuple(std::complex<double>(0, 0), std::complex<double>(0, 0));
+
+    REQUIRE(newton::gradientDescent(myTestFunc, 50, .00001, .5, testX, testY)==answer);
+}*/
+
 
 TEST_CASE("Test bisect", "[GaussNewton]"){
     auto myTestFunc=[](const auto& x){
