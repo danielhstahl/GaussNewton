@@ -99,8 +99,11 @@ TEST_CASE("Test gradient descent two args and appox", "[GaussNewton]"){
     
     //auto myResult=newton::gradientDescent(myTestFunc,  50, .00001, .5, testX);
     auto answer=std::make_tuple(5.0, 5.0);
-
-    REQUIRE(newton::gradientDescentApprox(myTestFunc, 50, .00001, .5, testX, testY)==answer);
+    int maxNum=50;
+    double prec=.00001;
+    double peterb=.0001;
+    double step=.5;
+    REQUIRE(newton::gradientDescentApprox(myTestFunc, maxNum, prec, peterb, step, testX, testY)==answer);
 }
 /*
 TEST_CASE("Test gradient descent two args and complex", "[GaussNewton]"){

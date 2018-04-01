@@ -265,11 +265,10 @@ namespace newton{
   }
   
   template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
-  auto gradientDescentApprox(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
+  auto gradientDescentApprox(const FNC& fnc, const Index& maxNum, const Precision& precision, const Precision& peterbation, const T& alpha, const Params&... params){
     return gradientDescentGeneric(
-      [](const auto& tupleFnc, const auto& updatedGradient){
-        double peterb=.0001;
-        return gradientIterateApprox(tupleFnc, updatedGradient, peterb);  
+      [&](const auto& tupleFnc, const auto& updatedGradient){
+        return gradientIterateApprox(tupleFnc, updatedGradient, peterbation);  
       },fnc,
       maxNum,
       precision,
