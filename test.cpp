@@ -73,8 +73,7 @@ TEST_CASE("Test gradient descent one args", "[GaussNewton]"){
     
     //auto myResult=newton::gradientDescent(myTestFunc,  50, .00001, .5, testX);
     auto answer=5.0;
-
-    REQUIRE(std::get<0>(newton::gradientDescent(myTestFunc,  50, .00001, .5, testX))==answer);
+    REQUIRE(std::get<0>(newton::gradientDescent(myTestFunc, 50, .00001, .5, testX))==answer);
 }
 
 
@@ -88,8 +87,9 @@ TEST_CASE("Test gradient descent two args", "[GaussNewton]"){
     //auto myResult=newton::gradientDescent(myTestFunc,  50, .00001, .5, testX);
     auto answer=std::make_tuple(5.0, 5.0);
 
-    REQUIRE(newton::gradientDescent(myTestFunc,  50, .00001, .5, testX, testY)==answer);
+    REQUIRE(newton::gradientDescent(myTestFunc, 50, .00001, .5, testX, testY)==answer);
 }
+
 
 TEST_CASE("Test bisect", "[GaussNewton]"){
     auto myTestFunc=[](const auto& x){

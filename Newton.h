@@ -164,13 +164,13 @@ namespace newton{
 
 
 
-
+  /**returns tuple of tuples*/
   template<typename FNC, typename T>
   auto gradientIterate(FNC&& fnc, const T& tuple){
     return tutilities::for_each(tuple, [&](const auto& val, const auto& index, auto&& priorTuple, auto&& nextTuple){
       return std::make_tuple(
         fnc(
-            std::tuple_cat(
+          std::tuple_cat(
             priorTuple, 
             std::make_tuple(AutoDiff<std::remove_const_t<std::remove_reference_t<decltype(val)> > >(val, 1.0)),   
             nextTuple
@@ -199,27 +199,23 @@ namespace newton{
     return theta-alpha*grad;
   }
 
-
-  template<typename T>
-  auto square(const T& val){
-    return val*val;
-  }
-
+  constexpr int GRAD=0;
+  constexpr int OBJ=1;
   template<typename FNC, typename Index, typename Precision,typename T, typename...Params>
   auto gradientDescent(const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha, const Params&... params){
     auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
       return tutilities::apply_tuple(fnc, tuple);
     };
-    return std::get<0>(futilities::recurse_move(
+    return std::get<GRAD>(futilities::recurse_move(
       maxNum, 
       std::make_tuple(std::make_tuple(params...), precision+1.0), ///inital guess and initial "error"
       [&](const auto& updatedTheta, const auto& numberOfAttempts){
         double error=0;
         return std::make_tuple(tutilities::for_each(
-          gradientIterate(tupleFnc, std::get<0>(updatedTheta)), //gradient at updatedTheta
-          [&](const auto& grad, const auto& index, auto&& priorTuple, auto&& nextTuple){
-            error+=square(std::get<0>(grad));
-            return gradientDescentObjective(std::get<1>(grad), alpha, std::get<0>(grad));
+          gradientIterate(tupleFnc, std::get<GRAD>(updatedTheta)), //gradient at updatedTheta
+          [&](const auto& gradAndObj, const auto& index, auto&& priorTuple, auto&& nextTuple){
+            error+=futilities::const_power(std::get<GRAD>(gradAndObj), 2);
+            return gradientDescentObjective(std::get<OBJ>(gradAndObj), alpha, std::get<GRAD>(gradAndObj));
           }
         ), error);
       }, 
