@@ -236,6 +236,9 @@ namespace newton{
       maxNum, 
       std::make_tuple(std::make_tuple(params...), precision+1.0), ///inital guess and initial "error"
       [&](const auto& updatedTheta, const auto& numberOfAttempts){
+        #ifdef VERBOSE_FLAG
+          printIteration(numberOfAttempts);
+        #endif
         double error=0;
         return std::make_tuple(tutilities::for_each(
           gradientIter(tupleFnc, std::get<GRAD>(updatedTheta)), //gradient at updatedTheta
@@ -246,7 +249,11 @@ namespace newton{
         ), error);
       }, 
       [&](const auto& updatedTheta){
-        return std::get<1>(updatedTheta)>precision;
+        auto fnValue=std::get<1>(updatedTheta);
+        #ifdef VERBOSE_FLAG
+          std::cout<<"Value: "<<fnValue<<std::endl;
+        #endif
+        return fnValue>precision;
       }
     ));
   }
