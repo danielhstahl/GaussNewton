@@ -224,36 +224,44 @@ namespace newton{
   }
 
 
-
+  /**This is for gradDescentPack*/
   constexpr int GRAD=0;
-  constexpr int OBJ=1;
+  constexpr int PARAMVAL=1;
+  /**This is for updatedTheta*/
+  constexpr int PARAMPACK=0;
+  constexpr int ERRORVAL=1;
+  constexpr int OBJVAL=2;
+ 
+
   template<typename FNC, typename GFN, typename Index, typename Precision,typename T, typename...Params>
   auto gradientDescentGeneric(const GFN& gradientIter, const FNC& fnc, const Index& maxNum, const Precision& precision, const T& alpha,  const Params&... params){
     auto tupleFnc=[&](const auto& tuple){ //this converts the incoming function into one that takes tuples
       return tutilities::apply_tuple(fnc, tuple);
     };
-    return std::get<GRAD>(futilities::recurse_move(
+    return std::get<PARAMPACK>(futilities::recurse_move(
       maxNum, 
-      std::make_tuple(std::make_tuple(params...), precision+1.0), ///inital guess and initial "error"
-      [&](const auto& updatedTheta, const auto& numberOfAttempts){
+      std::make_tuple(std::make_tuple(params...), precision+1.0, 5.0), ///inital guess, initial "error", initial value
+      [&](auto&& updatedTheta, const auto& numberOfAttempts){
         #ifdef VERBOSE_FLAG
           printIteration(numberOfAttempts);
         #endif
         double error=0;
         return std::make_tuple(tutilities::for_each(
-          gradientIter(tupleFnc, std::get<GRAD>(updatedTheta)), //gradient at updatedTheta
-          [&](const auto& gradAndObj, const auto& index, auto&& priorTuple, auto&& nextTuple){
-            error+=futilities::const_power(std::get<GRAD>(gradAndObj), 2);
-            return gradientDescentObjective(std::get<OBJ>(gradAndObj), alpha, std::get<GRAD>(gradAndObj));
+          gradientIter(tupleFnc, std::get<PARAMPACK>(updatedTheta)), //gradient at updatedTheta
+          [&](const auto& gradDescentPack, const auto& index, auto&& priorTuple, auto&& nextTuple){
+            error+=futilities::const_power(std::get<GRAD>(gradDescentPack), 2);
+            return gradientDescentObjective(std::get<PARAMVAL>(gradDescentPack), alpha, std::get<GRAD>(gradDescentPack));
           }
-        ), error);
+        ), error, tupleFnc(std::get<PARAMPACK>(updatedTheta)));
       }, 
       [&](const auto& updatedTheta){
-        auto fnValue=std::get<1>(updatedTheta);
+        auto error=std::get<ERRORVAL>(updatedTheta);
         #ifdef VERBOSE_FLAG
-          std::cout<<"Value: "<<fnValue<<std::endl;
+          auto objFn=std::get<OBJVAL>(updatedTheta);
+          std::cout<<"Error Val: "<<error;
+          std::cout<<", Obj Val: "<<objFn<<std::endl;
         #endif
-        return fnValue>precision;
+        return error>precision;
       }
     ));
   }
